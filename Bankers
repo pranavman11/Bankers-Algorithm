@@ -1,0 +1,401 @@
+#include <stdio.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include<pthread.h>
+
+pthread_mutex_t mutex;
+int req;
+
+struct v{
+		int available[10];
+		int allocation[10][10];
+		int need[10][10];
+		int NOR,NOC;
+		int request[10];
+		int maximum[10][10];
+		int n;
+};
+
+void *resrequest(void *param);
+void printMatrices(int** allocation,int** maximum,int available[],int finish[],int** need,int NOR, int NOC);
+void safety_algo(int* available,int** allocation,int** need,int* finish,int* safe_sequence,int NOR,int NOC);
+/*#define NOC 5
+#define NOR 3
+int available[NOR];
+int maximum[NOC][NOR];
+int allocation[NOC][NOR];
+int need[NOC][NOR];
+bool finish[NOC];
+int work[NOR];
+int safe_sequence[NOC];*/
+//void printMatrices(int** allocation,int** maximum,int available[],char finish[],int** need,int NOR, int NOC);
+//int safety_algo(int available[],int** allocation,int** need,char finish[],int safe_sequence[],int NOR,int NOC);
+
+int main(){
+	struct v *data = (struct v*)malloc(sizeof(struct v));
+		int n;
+	int NOC,NOR;
+	char ch;
+	int k;
+	pthread_mutex_init(&mutex,NULL);
+	printf("Enter the the number of processes:\n");
+	scanf("%d",&NOC);
+	printf("Enter the number of resources:\n");
+	scanf("%d",&NOR);
+	int *available;
+	//int request[NOR];
+	available = (int *)malloc(NOR*sizeof(int));
+
+	int *request;
+	request = (int *)malloc(NOR*sizeof(int));
+
+	int** maximum;
+	maximum = (int **)malloc(NOC*sizeof(int*));
+	for(int i=0;i<NOC;i++){
+		maximum[i] = (int *)malloc(NOR*sizeof(int));
+	}
+
+	int** allocation;
+	allocation = (int **)malloc(NOC*sizeof(int*));
+	for(int i=0;i<NOC;i++){
+		allocation[i] = (int *)malloc(NOR*sizeof(int));
+	}
+
+	int** need;
+	need = (int **)malloc(NOC*sizeof(int*));
+	for(int i=0;i<NOC;i++){
+		need[i] = (int *)malloc(NOR*sizeof(int));
+	}
+
+	int* finish;
+	finish = (int *)malloc(NOC*sizeof(int));
+
+	int work[NOR];
+
+	int* safe_sequence;
+	safe_sequence = (int *)malloc(NOC*sizeof(int));
+
+	int* safe_sequence2;
+	safe_sequence2 = (int *)malloc(NOC*sizeof(int));
+
+	int* safe_sequence3;
+	safe_sequence3 = (int *)malloc(NOC*sizeof(int));
+	int ok;
+	//printf("%d %d ",NOC,NOR);
+	printf("Enter the allocation matrix:\n");
+	for(int i=0; i<NOC ;i++){
+		for(int j=0; j<NOR ;j++){
+			scanf("%d",&allocation[i][j]);
+			//printf("%d ",allocation[i][j]);
+		}
+	}
+	printf("Enter the maximum matrix:\n");
+	for(int i=0; i<NOC ;i++){
+		for(int j=0; j<NOR ;j++){
+			scanf("%d",&maximum[i][j]);
+		}
+	}
+	printf("Enter the available matrix:\n");
+	for(int i=0; i<NOR ;i++){
+		scanf("%d",&available[i]);
+	}
+	for(int i=0; i<NOC ;i++){
+		for(int j=0; j<NOR ;j++){
+			need[i][j] = maximum[i][j] - allocation[i][j];
+		}
+	}
+	for(int i=0;i<NOC;i++){
+		safe_sequence[i]=-1;
+		safe_sequence[i] = -1;
+		finish[i] = 0;
+	}
+	printMatrices(allocation,maximum,available,finish,need,NOR,NOC);
+	printf("Detecting a safe sequence---\n");
+	safety_algo(available,allocation,need,finish,safe_sequence,NOR,NOC);
+	printf("Safe sequence--\n");
+	for(int i=0;i<NOC;i++){
+		printf("P%d ",safe_sequence[i]);
+	}
+	printf("\n");
+	//ch=1;
+		/*printf("Does any process requests resources: y/n");
+		scanf("%c",&ch);
+		if(ch=='y'){
+			printf("Enter process number and resource request\n");
+			scanf("%d",&n);
+			for(k=0;k<NOR;k++){
+				scanf("%d",&request[k]);
+			}*/
+			//n =1;
+	//requets
+	printf("Requesting...");
+	pthread_mutex_lock(&mutex);
+ 	//pthread_attr_t attr; // set of thread attributes
+    //pthread_attr_init(&attr);
+	pthread_t tid2;
+	//alloc
+	data->NOR = NOR;
+	data->NOC = NOC;
+	for(int i=0; i<NOC ;i++){
+		for(int j=0; j<NOR ;j++){
+			data->allocation[i][j] = allocation[i][j];
+		}
+	}
+
+	for(int i=0; i<NOR ;i++){
+		data->available[i] = available[i];
+	}
+	for(int i=0; i<NOC ;i++){
+		for(int j=0; j<NOR ;j++){
+			data->need[i][j] = need[i][j];
+			data->maximum[i][j] = maximum[i][j];
+		}
+	}
+	for(int i=0; i<NOR ;i++){
+		data->request[i] = 0;
+	}
+	for(int i=0;i<NOC;i++){
+		safe_sequence[i]=-1;
+		safe_sequence2[i] = -1;
+		finish[i] = 0;
+	}
+	printf("Enter process number:\n");
+	scanf("%d",&data->n);
+	printf("Processing request for P%d\n",data->n);
+	printf("Enter resource request\n");
+	for(int k=0;k<NOR;k++){
+		scanf("%d",&data->request[k]);
+	}
+	pthread_create(&tid2,NULL,&resrequest,data);
+	pthread_join(tid2,NULL);
+	//int request[] ={1,0,2};
+	//req = resrequest(available,allocation,need,NOR,NOC,request,n);
+	if(req == 0){
+		printf("Resource cannot be allocated\n");
+		//break;
+	}
+	if(req==1){
+		for(int i=0; i<NOC ;i++){
+			for(int j=0; j<NOR ;j++){
+				allocation[i][j] = data->allocation[i][j];
+			}
+		}
+		for(int i=0; i<NOC ;i++){
+			for(int j=0; j<NOR ;j++){
+				need[i][j] = data->need[i][j];
+			}
+		}
+		for(int i=0; i<NOR ;i++){
+			available[i] = data->available[i];
+		}
+
+		printf("Resource Allocated\nAfter Allocation:\n");
+		printMatrices(allocation,maximum,available,finish,need,NOR,NOC);
+		printf("Detecting a safe sequence---\n");
+		safety_algo(available,allocation,need,finish,safe_sequence2,NOR,NOC);
+		printf("Safe sequence--\n");
+		for(int i=0;i<NOC;i++){
+			printf("P%d ",safe_sequence2[i]);
+		}
+		printf("\n");
+		printf("So system in in safe state and resourse can be alloacted\n\n");
+	
+	}
+	pthread_mutex_unlock(&mutex);
+
+
+
+	
+	printf("Processing 2nd request\n");
+	pthread_mutex_lock(&mutex);
+ 	//pthread_attr_t attr; // set of thread attributes
+    //pthread_attr_init(&attr);
+	pthread_t tid;
+	//alloc
+	for(int i=0; i<NOC ;i++){
+		for(int j=0; j<NOR ;j++){
+			data->allocation[i][j] = allocation[i][j];
+		}
+	}
+
+	for(int i=0; i<NOR ;i++){
+		data->available[i] = available[i];
+	}
+	for(int i=0; i<NOC ;i++){
+		for(int j=0; j<NOR ;j++){
+			data->need[i][j] = need[i][j];
+		}
+	}
+	for(int i=0; i<NOR ;i++){
+		data->request[i] = 0;
+	}
+	for(int i=0;i<NOC;i++){
+		safe_sequence[i]=-1;
+		safe_sequence3[i] = -1;
+		finish[i] = 0;
+	}
+	printf("Enter process number:\n");
+	scanf("%d",&data->n);
+	printf("Processing request for P%d\n",data->n);
+	printf("Enter resource request\n");
+	for(int k=0;k<NOR;k++){
+		scanf("%d",&data->request[k]);
+	}
+	pthread_create(&tid,NULL,&resrequest,data);
+	pthread_join(tid,NULL);
+	//int request[] ={1,0,2};
+	//req = resrequest(available,allocation,need,NOR,NOC,request,n);
+	if(req == 0){
+		printf("Resource cannot be allocated\n");
+		//break;
+	}
+	if(req==1){
+		for(int i=0; i<NOC ;i++){
+			for(int j=0; j<NOR ;j++){
+				allocation[i][j] = data->allocation[i][j];
+			}
+		}
+		for(int i=0; i<NOC ;i++){
+			for(int j=0; j<NOR ;j++){
+				need[i][j] = data->need[i][j];
+			}
+		}
+		for(int i=0; i<NOR ;i++){
+			available[i] = data->available[i];
+		}
+		printf("Resource Allocated\nAfter Allocation:\n");
+		printMatrices(allocation,maximum,available,finish,need,NOR,NOC);
+		printf("Detecting a safe sequence---\n");
+		safety_algo(available,allocation,need,finish,safe_sequence3,NOR,NOC);
+		printf("Safe sequence--\n");
+		for(int i=0;i<NOC;i++){
+			printf("%d ",safe_sequence3[i]);
+		}
+		printf("\n");
+		printf("So system in in safe state and resourse can be alloacted\n\n");
+	
+	}
+	pthread_mutex_unlock(&mutex);
+
+	return 0;
+}
+void printMatrices(int** allocation,int** maximum,int available[],int finish[],int** need,int NOR, int NOC){
+	int i,j;
+	//	printf("%d %d ",NOC,NOR);
+		int n = NOC;
+		int m = NOR;
+	printf("---Allocation Matrix---\n");
+	//printf("running\n");
+	for(i=0; i<n ;i++){
+		for(j=0; j<m ;j++){
+			printf("%d ",allocation[i][j]);
+		}
+		printf("\n");
+	}
+	printf("\n---Maximum Matrix---\n");
+	for(i=0; i<n ;i++){
+		for(j=0; j<m ;j++){
+			printf("%d ",maximum[i][j]);
+		}
+		printf("\n");
+	}
+	printf("\n---Available Matrix---\n");
+	for(i=0; i<m ;i++){
+		printf("%d ",available[i]);
+	}
+	printf("\n---Need Matrix---\n");
+	for(i=0; i<n ;i++){
+		for(j=0; j<m ;j++){
+			printf("%d ",need[i][j]);
+		}
+		printf("\n");
+	}
+	/*printf("\n---Finish Matrix---");
+	for(i=0;i<n;i++){
+		printf("%c ", finish[i]);
+	}*/
+
+	return;
+}
+void safety_algo(int* available,int** allocation,int** need,int* finish,int* safe_sequence,int NOR,int NOC){
+	int work[NOR];
+	int cnt=0,i,j,flag,running=0,x=0;
+	for(int i=0;i<NOR;i++){
+		work[i] = available[i];
+	}
+	for(int i=0;i<NOC;i++){
+		safe_sequence[i]=-1;
+		finish[i] = 0;
+	}
+	while(1){
+		cnt = 0;
+		for(int k=0;k<NOC;k++){
+			for(i=0;i<NOC;i++){
+				//if(finish[i] == 0){
+				//	flag = 0;
+				//}
+				int go = 0;
+				if(finish[i] == 0){
+					flag = 0;
+				}
+				for(j=0;j<NOR;j++){
+					if(need[i][j] > work[j]){
+						/*flag=1;
+						finish[i] = 1;
+						work[j] += allocation[i][j];
+						safe_sequence[i] = i;*/
+						//break;
+						flag = 1;
+					}
+				}
+				if(flag == 0 && finish[i] == 0){
+					for(j=0;j<NOR;j++){
+						//finish[i] = 1;
+						work[j] += allocation[i][j];
+						//safe_sequence[i] = i;
+
+					}
+					finish[i] = 1;
+					safe_sequence[x++] = i;
+					running++;
+					//printf("%d\t",safe_sequence[i]);
+				}
+				//if(flag == 1)
+				//	safe_sequence[i] = i;
+			}
+		}
+		if(running == NOC){
+			printf("Safe Sequence detected\n");
+			break;
+		}
+	}
+	//for(i=0;i<x;i++){
+	//	printf("%d\t",safe_sequence[i]);
+	//}
+}
+void *resrequest(void* param){//int* available,int** allocation,int** need,int NOR,int NOC,int* request,int n){
+	struct v *data = param;
+	int n1=0,n2=0;
+	for(int i=0;i<data->NOR;i++){
+		if(data->request[i] <= data->need[data->n][i])
+			n1++;
+		if(data->request[i] <= data->available[i])
+			n2++;
+	}
+	if(n1!=data->NOR && n2!=data->NOR){
+		//return 0;
+		req = 0;
+		//goto x;
+	}
+	if(n1==data->NOR && n2==data->NOR){
+		for(int i=0;i<data->NOR;i++){
+			data->available[i]-=data->request[i];
+			data->allocation[data->n][i]+=data->request[i];
+			data->need[data->n][i]-=data->request[i];
+		}
+		//return 0;
+		req = 1;
+		//goto y;
+	}
+}
